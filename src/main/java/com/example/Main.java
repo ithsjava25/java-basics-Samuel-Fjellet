@@ -34,7 +34,7 @@ public class Main {
         double average = 0;
         double highest = 0;
         int highestIndex = 0;
-        double lowest = 100;
+        double lowest = Double.MAX_VALUE;
         int lowestIndex = 0;
         for(int i = 0; i < prisAry.length; i++){
             average += prisAry[i];
@@ -54,9 +54,19 @@ public class Main {
 
 
 
+
+        //Temporära outputs
+
         System.out.println("Average is " + averageString);
         System.out.println("Lowest price was " + lowestString + ", at hour " + lowestIndex);
         System.out.println("Highest price was " + highestString + ", at hour " + highestIndex);
+
+        int range = 4;
+        int window = slidingWindow(prisAry, range);
+        int endWindow = window + range;
+
+        System.out.println("Cheapest time period for " + range + " hours is " + window + " to " + endWindow);
+
 
     }
 
@@ -83,6 +93,31 @@ public class Main {
         }
 
         return Double.parseDouble(string.substring(startIndex,endIndex))*100;
+    }
+
+    private static int slidingWindow(double[] ary, int range){
+        int length = ary.length;
+
+        if (length <= range){
+            System.out.println("Error: Range too large.");
+            return -1;
+        }
+
+        double sum = 0;
+        for (int i = 0; i < range; i++)
+            sum += ary[i];
+
+
+        int index = 0;
+        double currentSum = sum;
+        for (int i = range; i < length; i++){
+            currentSum += ary[i] - ary[i - range];
+            if (currentSum < sum){
+                sum = currentSum;
+                index = i;
+            }
+        }
+        return index;
     }
 
 
