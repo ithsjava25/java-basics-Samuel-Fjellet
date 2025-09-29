@@ -14,19 +14,21 @@ public class Main {
 
         String date = LocalDate.now().toString();
 
-
+        //Skapar flaggor för parametrar
         boolean flagZon = false;
         boolean flagDate = false;
         boolean flagRange = false;
         boolean flagSorted = false;
+        String zon = "";
         int range = 0;
 
+        //Hämtar/skapar variabler från parametrar
         for(String arg : args){
             if(arg.equals("--zon")){
                 flagZon = true;
             }
             else if(flagZon){
-                String zon  = arg;
+                zon  = arg;
                 flagZon = false;
             }
             else if(arg.equals("--date")){
@@ -45,16 +47,28 @@ public class Main {
             }
             else if(arg.equals("--sorted"))
                 flagSorted = true;
-            else if(arg.equals("--help"))
+            else if(arg.equals("--help")) {
                 helpPrinter();
+                return;
+            }
+        }
+
+        //Får det korrekta zone formatet till elpris APIn
+        ElpriserAPI.Prisklass zone = ElpriserAPI.Prisklass.SE1;
+        switch (zon) {
+            case "SE2" -> {
+                zone = ElpriserAPI.Prisklass.SE2;
+            }
+            case "SE3" -> {
+                zone = ElpriserAPI.Prisklass.SE3;
+            }
+            case "SE4" -> {
+                zone = ElpriserAPI.Prisklass.SE4;
+            }
         }
 
         //Om elpris klassen är tom när vi får den, hemta en från dagen innan
 
-
-
-
-        ElpriserAPI.Prisklass zone = ElpriserAPI.Prisklass.SE4;
 
         //Skapar vårat locale och decimal format
         Locale locale = new Locale("sv", "SE");
