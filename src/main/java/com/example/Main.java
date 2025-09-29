@@ -3,6 +3,7 @@ package com.example;
 import com.example.api.ElpriserAPI;
 
 import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -11,18 +12,58 @@ public class Main {
     public static void main(String[] args) {
         ElpriserAPI elpriserAPI = new ElpriserAPI();
 
-        //Temporära variablar som blir tilldelade vid start
-        String date = "2025-09-25";
+        String date = LocalDate.now().toString();
+
+
+        boolean flagZon = false;
+        boolean flagDate = false;
+        boolean flagRange = false;
+        boolean flagSorted = false;
+        int range = 0;
+
+        for(String arg : args){
+            if(arg.equals("--zon")){
+                flagZon = true;
+            }
+            else if(flagZon){
+                String zon  = arg;
+                flagZon = false;
+            }
+            else if(arg.equals("--date")){
+                flagDate = true;
+            }
+            else if(flagDate) {
+                date = arg;
+                flagDate = false;
+            }
+            else if(arg.equals("--charging")) {
+                flagRange = true;
+            }
+            else if(flagRange) {
+                range = Integer.parseInt(arg);
+                flagRange = false;
+            }
+            else if(arg.equals("--sorted"))
+                flagSorted = true;
+            else if(arg.equals("--help"))
+                helpPrinter();
+        }
+
+        //Om elpris klassen är tom när vi får den, hemta en från dagen innan
+
+
+
+
         ElpriserAPI.Prisklass zone = ElpriserAPI.Prisklass.SE4;
 
         //Skapar vårat locale och decimal format
-        Locale locale = new Locale("sv", "SV");
+        Locale locale = new Locale("sv", "SE");
         String pattern = "###.##";
         DecimalFormat df = (DecimalFormat) DecimalFormat.getInstance(locale);
         df.applyPattern(pattern);
 
         //Hämta elpris listan för speciferatt datum och zon
-        List<ElpriserAPI.Elpris> list = elpriserAPI.getPriser(date, zone);
+        var list = elpriserAPI.getPriser(date, zone);
 
         //Hämta priserna från elpris listan
         double[] prisAry = new double[list.size()];
@@ -61,11 +102,11 @@ public class Main {
         System.out.println("Lowest price was " + lowestString + ", at hour " + lowestIndex);
         System.out.println("Highest price was " + highestString + ", at hour " + highestIndex);
 
-        int range = 4;
-        int window = slidingWindow(prisAry, range);
-        int endWindow = window + range;
 
-        System.out.println("Cheapest time period for " + range + " hours is " + window + " to " + endWindow);
+        //int window = slidingWindow(prisAry, range);
+        //int endWindow = window + range;
+
+        //System.out.println("Cheapest time period for " + range + " hours is " + window + " to " + endWindow);
 
 
     }
@@ -120,6 +161,8 @@ public class Main {
         return index;
     }
 
-
+    private static void helpPrinter(){
+        System.out.println("Temp help message!");
+    }
 
 }
