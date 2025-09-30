@@ -6,12 +6,13 @@ public class TidsPeriod {
 
     double pris;
     String period;
+    String tid;
 
     public TidsPeriod(double pris, ZonedDateTime startTid){
         this.pris = pris*100;
         this.period = switch (startTid.getHour()) {
             case 0 -> "00-01";
-            case 1 -> "01:00";
+            case 1 -> "01-00";
             case 2 -> "02-03";
             case 3 -> "03-04";
             case 4 -> "04-05";
@@ -35,7 +36,37 @@ public class TidsPeriod {
             case 22 -> "22-23";
             case 23 -> "23-24";
             default -> "";
+
         };
+
+        this.tid = switch (startTid.getHour()) {
+            case 0 -> "00:00";
+            case 1 -> "01:00";
+            case 2 -> "02:00";
+            case 3 -> "03:00";
+            case 4 -> "04:00";
+            case 5 -> "05:00";
+            case 6 -> "06:00";
+            case 7 -> "07:00";
+            case 8 -> "08:00";
+            case 9 -> "09:00";
+            case 10 -> "10:00";
+            case 11 -> "11:00";
+            case 12 -> "12:00";
+            case 13 -> "13:00";
+            case 14 -> "14:00";
+            case 15 -> "15:00";
+            case 16 -> "16:00";
+            case 17 -> "17:00";
+            case 18 -> "18:00";
+            case 19 -> "19:00";
+            case 20 -> "20:00";
+            case 21 -> "21:00";
+            case 22 -> "22:00";
+            case 23 -> "23:00";
+            default -> "";
+        };
+
 
     }
 
