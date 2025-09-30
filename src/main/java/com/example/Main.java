@@ -4,7 +4,7 @@ import com.example.api.ElpriserAPI;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 
@@ -14,6 +14,11 @@ public class Main {
 
         String date = LocalDate.now().toString();
 
+        if(args.length==0){
+            helpPrinter();
+            return;
+        }
+
         //Skapar flaggor för parametrar
         boolean flagZon = false;
         boolean flagDate = false;
@@ -22,9 +27,14 @@ public class Main {
         String zon = "";
         int range = 0;
 
+        if(args.length == 0){
+            helpPrinter();
+            return;
+        }
+
         //Hämtar/skapar variabler från parametrar
         for(String arg : args){
-            if(arg.equals("--zon")){
+            if(arg.equals("--zone")){
                 flagZon = true;
             }
             else if(flagZon){
@@ -42,7 +52,7 @@ public class Main {
                 flagRange = true;
             }
             else if(flagRange) {
-                range = Integer.parseInt(arg);
+                range = Integer.parseInt(arg.substring(0,1));
                 flagRange = false;
             }
             else if(arg.equals("--sorted"))
@@ -53,21 +63,30 @@ public class Main {
             }
         }
 
-        //Får det korrekta zone formatet till elpris APIn
-        ElpriserAPI.Prisklass zone = ElpriserAPI.Prisklass.SE1;
-        switch (zon) {
-            case "SE2" -> {
-                zone = ElpriserAPI.Prisklass.SE2;
-            }
-            case "SE3" -> {
-                zone = ElpriserAPI.Prisklass.SE3;
-            }
-            case "SE4" -> {
-                zone = ElpriserAPI.Prisklass.SE4;
-            }
+        if(zon.isBlank()){
+            System.out.println("Saknar zone");
+            return;
         }
 
-        //Om elpris klassen är tom när vi får den, hemta en från dagen innan
+        //Får det korrekta zone formatet till elpris APIn
+        ElpriserAPI.Prisklass zone = ElpriserAPI.Prisklass.SE1;
+        switch(zon){
+            case "SE1":
+                break;
+            case "SE2":
+                zone = ElpriserAPI.Prisklass.SE2;
+                break;
+            case "SE3":
+                zone = ElpriserAPI.Prisklass.SE3;
+                break;
+            case "SE4":
+                zone = ElpriserAPI.Prisklass.SE4;
+                break;
+            default:
+                System.out.println("ogiltig zon");
+                return;
+
+        }
 
 
         //Skapar vårat locale och decimal format
@@ -76,30 +95,36 @@ public class Main {
         DecimalFormat df = (DecimalFormat) DecimalFormat.getInstance(locale);
         df.applyPattern(pattern);
 
-        //Hämta elpris listan för speciferatt datum och zon
+        //Hämta elpris listan för specification datum och zon
+        //Om elpris klassen är tom när vi får den, hämta en från dagen innan
         var list = elpriserAPI.getPriser(date, zone);
+        if (list.isEmpty()) {
+            System.out.println("Ogiltigt datum. Använder dagens priser.");
+            list = elpriserAPI.getPriser(LocalDate.now().toString(), zone);
+        }
 
-        //Hämta priserna från elpris listan
-        double[] prisAry = new double[list.size()];
+        //Hämta priserna från elpris listan och läger dem i en array av klasen TidsPeriod
+        var prisAry = new TidsPeriod[list.size()];
         for(int i =0; i < list.size(); i++){
-            prisAry[i] = elprisNumberseperator(list.get(i).toString());
+            var temp = list.get(i);
+            prisAry[i] = new TidsPeriod(temp.sekPerKWh(), temp.timeStart());
         }
 
         //Hittar det högsta och lägsta priset och medelvärdet på priserna och skapar en String för dem alla
         double average = 0;
         double highest = 0;
-        int highestIndex = 0;
+        String highestPeriod = "";
         double lowest = Double.MAX_VALUE;
-        int lowestIndex = 0;
-        for(int i = 0; i < prisAry.length; i++){
-            average += prisAry[i];
-            if(prisAry[i] > highest){
-                highest = prisAry[i];
-                highestIndex = i;
+        String lowestPeriod = "";
+        for (TidsPeriod tidsPeriod : prisAry) {
+            average += tidsPeriod.pris;
+            if (tidsPeriod.pris > highest) {
+                highest = tidsPeriod.pris;
+                highestPeriod = tidsPeriod.period;
             }
-            if(prisAry[i] < lowest){
-                lowest = prisAry[i];
-                lowestIndex = i;
+            if (tidsPeriod.pris < lowest) {
+                lowest = tidsPeriod.pris;
+                lowestPeriod = tidsPeriod.period;
             }
         }
         average = average / prisAry.length;
@@ -107,50 +132,58 @@ public class Main {
         String lowestString = df.format(lowest) + " öre";
         String highestString = df.format(highest) + " öre";
 
+        System.out.println("Medelpris är " + averageString);
+        System.out.println("Lägsta pris är " + lowestString + ", vid tiderna " + lowestPeriod);
+        System.out.println("Högsta pris är " + highestString + ", vid tiderna " + highestPeriod);
 
+        if(range == 2 || range == 4 || range == 8){
 
+            System.out.println(date);
 
-        //Temporära outputs
+            DateTimeFormatter formatter =
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        System.out.println("Average is " + averageString);
-        System.out.println("Lowest price was " + lowestString + ", at hour " + lowestIndex);
-        System.out.println("Highest price was " + highestString + ", at hour " + highestIndex);
-
-
-        //int window = slidingWindow(prisAry, range);
-        //int endWindow = window + range;
-
-        //System.out.println("Cheapest time period for " + range + " hours is " + window + " to " + endWindow);
-
-
-    }
-
-    private static double elprisNumberseperator(String string){
-
-        int startIndex = 0;
-        boolean startChecker = false;
-        int endIndex = 0;
-
-        for (int i = 0; i < string.length(); i++) {
-            boolean isNumber = string.charAt(i) >= 48 && string.charAt(i) <= 57;
-            if ( !startChecker && (isNumber || string.charAt(i) == 46 )) {
-                startIndex = i;
-                startChecker = true;
-            }
-            if (startChecker && (isNumber || string.charAt(i) == 46)) {
-                endIndex = i;
+            LocalDate extraDate = LocalDate.parse(date, formatter).plusDays(1);
+            String extraDateString = extraDate.toString();
+            var extraList = elpriserAPI.getPriser(extraDateString, zone);
+            var extraAry = new TidsPeriod[range-1];
+            for(int i =0; i < range-1; i++){
+                var temp = extraList.get(i);
+                extraAry[i] = new TidsPeriod(temp.sekPerKWh(), temp.timeStart());
             }
 
-            if(startChecker && endIndex < i){
-                break;
+            int window = slidingWindow(prisAry, range, extraAry);
+            int endWindow = window + range;
+            double tempAverage = prisAry[window].pris;
+            for(int i = window+1; i < endWindow; i++){
+                if(i < prisAry.length) {
+                    tempAverage += prisAry[i].pris;
+                }else if(i >= prisAry.length){
+                    tempAverage += extraAry[i- prisAry.length].pris;
+                }
             }
+            tempAverage = tempAverage/range;
+            String tempAveragestring = df.format(tempAverage);
 
+            System.out.println("Biligaste tids period för " + range + " timmar är: från kl " + window + " till kl " + endWindow);
+            System.out.println("Påbörja laddning klockan " + window + " med ett medelvärda på " + tempAveragestring);
         }
 
-        return Double.parseDouble(string.substring(startIndex,endIndex))*100;
     }
 
-    private static int slidingWindow(double[] ary, int range){
+
+    private static int slidingWindow(TidsPeriod[] list, int range,  TidsPeriod[] extraList) {
+
+        int tempLength = list.length + extraList.length;
+        TidsPeriod[] ary = new TidsPeriod[tempLength];
+        for (int i = 0; i < tempLength; i++) {
+            if (i < list.length) {
+                ary[i] = list[i];
+            }else if (i < list.length + extraList.length) {
+                ary[i] = extraList[i-list.length];
+            }
+        }
+
         int length = ary.length;
 
         if (length <= range){
@@ -160,13 +193,13 @@ public class Main {
 
         double sum = 0;
         for (int i = 0; i < range; i++)
-            sum += ary[i];
+            sum += ary[i].pris;
 
 
         int index = 0;
         double currentSum = sum;
         for (int i = range; i < length; i++){
-            currentSum += ary[i] - ary[i - range];
+            currentSum += ary[i].pris - ary[i - range].pris;
             if (currentSum < sum){
                 sum = currentSum;
                 index = i;
@@ -176,7 +209,13 @@ public class Main {
     }
 
     private static void helpPrinter(){
-        System.out.println("Temp help message!");
+        System.out.println("------------------Script usage---------------------------------------------------------");
+        System.out.println("Input options:         | Exempel: --zone SE3 --date 2025/05/28 -- charging 8h -- sorted");
+        System.out.println("--zone SE1|SE2|SE3|SE4 | Required. Pris zon för kollen");
+        System.out.println("--date yyyy/MM/dd      | Optional. Datum för kollen, väljer dagens om inget datum är givet.");
+        System.out.println("--charging 2h|4h|8h    | Optional. Hitta den billigaste tids perioden med given tim period.");
+        System.out.println("--sorted               | Optional. Sorterar Priserna Från dyrast till billigast");
     }
 
+    
 }
