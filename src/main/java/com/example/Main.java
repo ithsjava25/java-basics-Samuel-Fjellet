@@ -4,7 +4,6 @@ import com.example.api.ElpriserAPI;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -114,7 +113,7 @@ public class Main {
             tempAverage = tempAverage/range;
             String tempAveragestring = df.format(tempAverage);
 
-            System.out.println("Biligaste tids period för " + range + " timmar är: från kl " + prisAry[startWindow].tid + " till kl " + prisAry[endWindow].tid);
+            System.out.println("Billigaste tids period för " + range + " timmar är: från kl " + prisAry[startWindow].tid + " till kl " + prisAry[endWindow].tid);
             System.out.println("Påbörja laddning klockan " + prisAry[startWindow].tid + " med ett Medelpris för fönster: " + tempAveragestring + " öre");
 
         } else {
@@ -131,15 +130,15 @@ public class Main {
         String lowestPeriod = "";
 
 
-        for (int i = 0; i < prisAry.length; i++) {
-            average += prisAry[i].pris;
-            if (prisAry[i].pris > highest) {
-                highest = prisAry[i].pris;
-                highestPeriod = prisAry[i].period;
+        for (TidsPeriod tidsPeriod : prisAry) {
+            average += tidsPeriod.pris;
+            if (tidsPeriod.pris > highest) {
+                highest = tidsPeriod.pris;
+                highestPeriod = tidsPeriod.period;
             }
-            if (prisAry[i].pris < lowest) {
-                lowest = prisAry[i].pris;
-                lowestPeriod = prisAry[i].period;
+            if (tidsPeriod.pris < lowest) {
+                lowest = tidsPeriod.pris;
+                lowestPeriod = tidsPeriod.period;
             }
         }
         average = average / prisAry.length;
@@ -156,8 +155,8 @@ public class Main {
             var listSorted = bubbleSorter(prisCompiler(list));
 
             List<String> sortedStringarray = new ArrayList<>();
-            for(int i = 0; i < listSorted.length; i++){
-                String sortedString = listSorted[i].period + " " + listSorted[i].pris + " öre";
+            for (TidsPeriod tidsPeriod : listSorted) {
+                String sortedString = tidsPeriod.period + " " + tidsPeriod.pris + " öre";
                 sortedStringarray.add(sortedString);
             }
 
@@ -201,14 +200,11 @@ public class Main {
 
             double hourPris = 0;
             int hourAverage = 0;
-            ZonedDateTime currentTime = list.getFirst().timeStart();
 
-            for (int j = 0; j < list.size(); j++){
-                var currentElement = list.get(j);
-
+            for (ElpriserAPI.Elpris currentElement : list) {
                 int currentHour = currentElement.timeStart().getHour();
 
-                if(currentHour == i) {
+                if (currentHour == i) {
                     hourPris += currentElement.sekPerKWh();
                     hourAverage += 1;
                 }
@@ -233,7 +229,7 @@ public class Main {
 
     private static boolean initializer(String[] args){
 
-        //Om input är tom ska programmet returna hjälp medelandet
+        //Om input är tom ska programmet returnera hjälp medellandet
         if(args.length==0){
             helpPrinter();
             return true;
