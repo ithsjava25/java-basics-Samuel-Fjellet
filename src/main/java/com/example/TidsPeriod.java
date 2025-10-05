@@ -8,11 +8,11 @@ public class TidsPeriod {
     String period;
     String tid;
 
-    public TidsPeriod(double pris, ZonedDateTime startTid){
+    public TidsPeriod(double pris, int startTid){
         this.pris = pris*100;
-        this.period = switch (startTid.getHour()) {
+        this.period = switch (startTid) {
             case 0 -> "00-01";
-            case 1 -> "01-00";
+            case 1 -> "01-02";
             case 2 -> "02-03";
             case 3 -> "03-04";
             case 4 -> "04-05";
@@ -39,7 +39,7 @@ public class TidsPeriod {
 
         };
 
-        this.tid = switch (startTid.getHour()) {
+        this.tid = switch (startTid) {
             case 0 -> "00:00";
             case 1 -> "01:00";
             case 2 -> "02:00";
