@@ -15,7 +15,7 @@ public class Main {
     static int range = 0;
     static ElpriserAPI.Prisklass zone;
     static int listSize;
-    static TidsPeriod[] prisAry;
+    static List<TidsPeriod> prisAry;
     static boolean flagSorted = false;
     static boolean flagDate = false;
 
@@ -53,7 +53,10 @@ public class Main {
         }
 
         var list = elpriserAPI.getPriser(date, zone);
-
+        if(list.isEmpty()){
+            System.out.println("Ingen data");
+            return;
+        }
 
 
         if (range == 2 || range == 4 || range == 8) {
@@ -61,60 +64,62 @@ public class Main {
             LocalDate extraDate = LocalDate.parse(date, formatter).plusDays(1);
             String extraDateString = extraDate.toString();
 
+            if (isValidDate(extraDateString, "yyyy-MM-dd")){
+
+            }
+
 
             var extraList = elpriserAPI.getPriser(extraDateString, zone);
 
             prisAry = prisCompiler(list);
+            listSize = prisAry.size();
 
             //Så länge den extra dagens data existerar
             if (!extraList.isEmpty()){
                 var extraAry = prisCompiler(extraList);
                 //Kollar om vi fick mindre data än vi förväntade oss och använder i så fall mindre utrymmer
                 int tempRange = range;
-                if (extraAry.length < tempRange) {
-                    tempRange = extraAry.length;
+                if (extraAry.size() < tempRange) {
+                    tempRange = extraAry.size();
                 }
 
-                //skapar en temporär ary för att kombinera vår prisAry och extraAry i
-                var tempAry = new TidsPeriod[prisAry.length + tempRange - 1];
+                //skapar en temporär lista för att kombinera vår prisAry och extraAry i
+                List<TidsPeriod> tempAry = new ArrayList<>();
 
                 //Lägger in alla element från prisAry of extraAry in i vår temporära ary
-                for(int i = 0; i < prisAry.length + tempRange - 1; i++){
-                    if (i < prisAry.length){
-                        tempAry[i] = prisAry[i];
+                for(int i = 0; i < prisAry.size() + tempRange; i++){
+                    if (i < prisAry.size()){
+                        tempAry.add(prisAry.get(i));
                     } else {
-                        tempAry[i] = extraAry[i-prisAry.length];
+                        tempAry.add(extraAry.get(i-prisAry.size()));
                     }
                 }
                 prisAry = tempAry;
 
-                listSize = list.size() + extraAry.length;
 
-
-            } else {
-                listSize = list.size();
             }
 
 
 
-            int endWindow = slidingWindow(prisAry, range);
+            int startWindow = slidingWindow(prisAry, range);
 
-            if(endWindow == -1){
+            if(startWindow == -1){
+                System.out.println("Något gick fel.");
                 return;
             }
 
-            int startWindow = endWindow - range+1;
-            double tempAverage = prisAry[startWindow].pris;
+            int endWindow = startWindow + range - 1;
+            double tempAverage = 0;//prisAry.get(startWindow).pris;
 
-            for(int i = startWindow+1; i <= endWindow; i++){
-                tempAverage += prisAry[i].pris;
+            for(int i = startWindow; i <= endWindow; i++){
+                tempAverage += prisAry.get(i).pris;
             }
 
             tempAverage = tempAverage/range;
             String tempAveragestring = df.format(tempAverage);
 
-            System.out.println("Billigaste tids period för " + range + " timmar är: från kl " + prisAry[startWindow].tid + " till kl " + prisAry[endWindow].tid);
-            System.out.println("Påbörja laddning klockan " + prisAry[startWindow].tid + " med ett Medelpris för fönster: " + tempAveragestring + " öre");
+            System.out.println("Billigaste tids period för " + range + " timmar är: från kl " + prisAry.get(startWindow).tid + " till kl " + prisAry.get(endWindow).tid);
+            System.out.println("Påbörja laddning klockan " + prisAry.get(startWindow).tid + " med ett Medelpris för fönster: " + tempAveragestring + " öre");
 
         } else {
             listSize = list.size();
@@ -122,33 +127,7 @@ public class Main {
         }
 
 
-        //Hittar det högsta och lägsta priset och medelvärdet på priserna och skapar en String för dem alla
-        double average = 0;
-        double highest = 0;
-        String highestPeriod = "";
-        double lowest = Double.MAX_VALUE;
-        String lowestPeriod = "";
-
-
-        for (TidsPeriod tidsPeriod : prisAry) {
-            average += tidsPeriod.pris;
-            if (tidsPeriod.pris > highest) {
-                highest = tidsPeriod.pris;
-                highestPeriod = tidsPeriod.period;
-            }
-            if (tidsPeriod.pris < lowest) {
-                lowest = tidsPeriod.pris;
-                lowestPeriod = tidsPeriod.period;
-            }
-        }
-        average = average / prisAry.length;
-        String averageString = df.format(average) + " öre";
-        String lowestString = df.format(lowest) + " öre";
-        String highestString = df.format(highest) + " öre";
-
-        System.out.println("Medelpris är " + averageString);
-        System.out.println("Lägsta pris är " + lowestString + ", vid tiderna " + lowestPeriod);
-        System.out.println("Högsta pris är " + highestString + ", vid tiderna " + highestPeriod);
+        numbers(df);
 
 
         if (flagSorted){
@@ -167,20 +146,50 @@ public class Main {
 
     }
 
+    private static void numbers(DecimalFormat df) {
+        //Hittar det högsta och lägsta priset och medelvärdet på priserna och skapar en String för dem alla
+        double average = 0;
+        double highest = 0;
+        String highestPeriod = "";
+        double lowest = Double.MAX_VALUE;
+        String lowestPeriod = "";
+
+
+        for (int i = 0; i < listSize; i++) {
+            average += prisAry.get(i).pris;
+            if (prisAry.get(i).pris > highest) {
+                highest = prisAry.get(i).pris;
+                highestPeriod = prisAry.get(i).period;
+            }
+            if (prisAry.get(i).pris < lowest) {
+                lowest = prisAry.get(i).pris;
+                lowestPeriod = prisAry.get(i).period;
+            }
+        }
+        average = average / listSize;
+        String averageString = df.format(average) + " öre";
+        String lowestString = df.format(lowest) + " öre";
+        String highestString = df.format(highest) + " öre";
+
+        System.out.println("Medelpris är " + averageString);
+        System.out.println("Lägsta pris är " + lowestString + ", vid tiderna " + lowestPeriod);
+        System.out.println("Högsta pris är " + highestString + ", vid tiderna " + highestPeriod);
+    }
+
     //Hämta priserna från elpris listan och läger dem i en array av klasen TidsPeriod
 
 
-    public static TidsPeriod[] bubbleSorter(TidsPeriod[] list){
+    public static List<TidsPeriod> bubbleSorter(List<TidsPeriod> list){
         TidsPeriod temp;
         boolean swapped;
-        for(int i = 0; i < list.length - 1; i++){
+        for(int i = 0; i < list.size() - 1; i++){
             swapped = false;
-            for(int j = 0; j < list.length - i - 1; j++){
-                if(list[j].pris > list[j + 1].pris){
+            for(int j = 0; j < list.size() - i - 1; j++){
+                if(list.get(j).pris > list.get(j + 1).pris){
 
-                    temp = list[j];
-                    list[j] = list[j + 1];
-                    list[j + 1] = temp;
+                    temp = list.get(j);
+                    list.set(j, list.get(j + 1));
+                    list.set(j + 1, temp);
                     swapped = true;
                 }
                 if(!swapped)
@@ -192,8 +201,8 @@ public class Main {
         return list;
     }
 
-    public static TidsPeriod[] prisCompiler(List<ElpriserAPI.Elpris> list){
-        var prisAry = new TidsPeriod[24];
+    public static List<TidsPeriod> prisCompiler(List<ElpriserAPI.Elpris> list){
+        List<TidsPeriod> prisAry = new ArrayList<>();
 
         //För varje timme, går igenom list och lägger ihop medelvärdet för varje tillgänglig timme i prisAry.
         for(int i = 0; i < 24; i++){
@@ -210,15 +219,15 @@ public class Main {
                 }
             }
 
-            prisAry[i] = new TidsPeriod(hourPris/hourAverage, i);
+            prisAry.add(new TidsPeriod(hourPris/hourAverage, i));
 
         }
 
         int index = 0;
-        while (index < prisAry.length){
-            if(Double.isNaN(prisAry[index].pris)){
+        while (index < prisAry.size()){
+            if(Double.isNaN(prisAry.get(index).pris)){
 
-                prisAry = removeElement(prisAry, index);
+                prisAry.remove(index);
             }
             else
                 index += 1;
@@ -300,28 +309,29 @@ public class Main {
         return false;
     }
 
-    private static int slidingWindow(TidsPeriod[] ary, int range) {
-        int length = ary.length;
+    private static int slidingWindow(List<TidsPeriod> ary, int range) {
+        int length = ary.size();
 
-        if (length <= range){
+        if (length < range){
             System.out.println("Error: För lång laddnings tid.");
             return -1;
         }
 
         double sum = 0;
         for (int i = 0; i < range; i++)
-            sum += ary[i].pris;
+            sum += ary.get(i).pris;
 
 
         int index = 0;
         double currentSum = sum;
-        for (int i = range; i < length; i++){
-            currentSum += ary[i].pris - ary[i-range].pris;
+        for (int i = range; i <= length-range; i++){
+            currentSum -= ary.get(i-range).pris;
+            currentSum += ary.get(i).pris;
             if (currentSum < sum){
 
 
                 sum = currentSum;
-                index = i;
+                index = i-(range-1);
             }
         }
         return index;
@@ -331,7 +341,7 @@ public class Main {
         System.out.println("------------------Script usage----------------------------------------------------------------");
         System.out.println("Input options:         | Example: --zone SE3 --date 2025/05/28 -- charging 8h -- sorted");
         System.out.println("--zone SE1|SE2|SE3|SE4 | Required. Price zone to check.");
-        System.out.println("--date yyyy/MM/dd      | Optional. Date for the check, uses today's date if nothing was input.");
+        System.out.println("--date yyyy-MM-dd      | Optional. Date for the check, uses today's date if nothing was input.");
         System.out.println("--charging 2h|4h|8h    | Optional. Finds the cheapest time period with given hour period.");
         System.out.println("--sorted               | Optional. Sorts prices in descending order.");
     }
@@ -349,19 +359,19 @@ public class Main {
         }
     }
 
-    public static TidsPeriod[] removeElement(TidsPeriod[] arr, int index){
+    public static List<TidsPeriod> removeElement(List<TidsPeriod> arr, int index){
 
-        if (arr == null || index < 0 || index >= arr.length){
+        if (arr == null || index < 0 || index >= arr.size()){
             return arr;
         }
 
-        TidsPeriod[] newArr = new TidsPeriod[arr.length - 1];
+        List<TidsPeriod> newArr = new ArrayList<>();
 
-        for (int i = 0, k = 0; i < arr.length; i++){
+        for (int i = 0, k = 0; i < arr.size(); i++){
             if (i == index){
                 continue;
             }
-            newArr[k++] = arr[i];
+            //newArr[k++] = arr.get(i);
         }
         return newArr;
     }
