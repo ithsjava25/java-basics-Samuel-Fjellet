@@ -64,11 +64,6 @@ public class Main {
             LocalDate extraDate = LocalDate.parse(date, formatter).plusDays(1);
             String extraDateString = extraDate.toString();
 
-            if (isValidDate(extraDateString, "yyyy-MM-dd")){
-
-            }
-
-
             var extraList = elpriserAPI.getPriser(extraDateString, zone);
 
             prisAry = prisCompiler(list);
@@ -357,23 +352,6 @@ public class Main {
         } catch (DateTimeParseException e) {
             return false; // If parsing fails, the date is invalid
         }
-    }
-
-    public static List<TidsPeriod> removeElement(List<TidsPeriod> arr, int index){
-
-        if (arr == null || index < 0 || index >= arr.size()){
-            return arr;
-        }
-
-        List<TidsPeriod> newArr = new ArrayList<>();
-
-        for (int i = 0, k = 0; i < arr.size(); i++){
-            if (i == index){
-                continue;
-            }
-            //newArr[k++] = arr.get(i);
-        }
-        return newArr;
     }
 
 
