@@ -23,6 +23,22 @@ public class Main {
 
 
     public static void main(String[] args) {
+
+        flagDate = false;
+        for(String string : args){
+            if(flagDate){
+                if(!isValidDate(string, "yyyy-MM-dd")){
+                    System.out.println("Ogiltigt datum");
+                    return;
+                }
+                break;
+            }
+
+            if(string.equals("--date"))
+                flagDate = true;
+
+        }
+
         ElpriserAPI elpriserAPI = new ElpriserAPI();
 
 
@@ -43,10 +59,6 @@ public class Main {
 
         //Hämta elpris listan för specification datum och zon
         //Om elpris klassen är tom när vi får den, hämta en från dagen innan
-        if (flagDate && !isValidDate(date, "yyyy-MM-dd")){
-            System.out.println("ogiltigt datum.");
-            return;
-        }
 
         if (!flagDate){
             date = LocalDate.now().toString();
@@ -117,8 +129,8 @@ public class Main {
             System.out.println("Påbörja laddning klockan " + prisAry.get(startWindow).tid + " med ett Medelpris för fönster: " + tempAveragestring + " öre");
 
         } else {
-            listSize = list.size();
             prisAry = prisCompiler(list);
+            listSize = prisAry.size();
         }
 
 
@@ -130,11 +142,13 @@ public class Main {
 
             List<String> sortedStringarray = new ArrayList<>();
             for (TidsPeriod tidsPeriod : listSorted) {
-                String sortedString = tidsPeriod.period + " " + tidsPeriod.pris + " öre";
+                String sortedString = tidsPeriod.period + " " + df.format(tidsPeriod.pris) + " öre";
                 sortedStringarray.add(sortedString);
             }
 
-            System.out.println(sortedStringarray);
+            for(String sortedString : sortedStringarray){
+                System.out.println(sortedString);
+            }
 
         }
 
@@ -176,24 +190,19 @@ public class Main {
 
     public static List<TidsPeriod> bubbleSorter(List<TidsPeriod> list){
         TidsPeriod temp;
-        boolean swapped;
-        for(int i = 0; i < list.size() - 1; i++){
-            swapped = false;
-            for(int j = 0; j < list.size() - i - 1; j++){
-                if(list.get(j).pris > list.get(j + 1).pris){
+        List<TidsPeriod> tempList = list;
 
-                    temp = list.get(j);
-                    list.set(j, list.get(j + 1));
-                    list.set(j + 1, temp);
-                    swapped = true;
+        for(int i = 0; i < tempList.size(); i++){
+            for(int j = 0; j < tempList.size()- 1 - i; j++){
+                if(tempList.get(j).pris > tempList.get(j+1).pris){
+                    temp = tempList.get(j);
+                    tempList.set(j, tempList.get(j+1));
+                    tempList.set(j+1, temp);
                 }
-                if(!swapped)
-                    break;
             }
 
         }
-
-        return list;
+        return tempList;
     }
 
     public static List<TidsPeriod> prisCompiler(List<ElpriserAPI.Elpris> list){
@@ -319,7 +328,7 @@ public class Main {
 
         int index = 0;
         double currentSum = sum;
-        for (int i = range; i <= length-range; i++){
+        for (int i = range; i <= length - range; i++){
             currentSum -= ary.get(i-range).pris;
             currentSum += ary.get(i).pris;
             if (currentSum < sum){
